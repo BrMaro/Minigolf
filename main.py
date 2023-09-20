@@ -1,4 +1,6 @@
 import os.path
+import time
+
 import pygame
 import math
 
@@ -23,26 +25,7 @@ AQUA = (100, 200, 200)
 BLACK = (0, 0, 0)
 GREY = (200, 200, 200)
 WHITE = (255, 255, 255)
-
-
-
-def get_ball_physics(ball_x,ball_y,ball_radius):
-    #Maintain ball within screen
-    if ball_x < ball_radius:
-        ball_x = ball_radius
-    elif ball_x > WIDTH - ball_radius:
-        ball_x = WIDTH- ball_radius
-    if ball_y < ball_radius:
-        ball_y = ball_radius
-    elif ball_y > HEIGHT - ball_radius:
-        ball_y = HEIGHT - ball_radius
-
-    #Make ball fall down
-    if ball_y < HEIGHT - ball_radius:
-        ball_y += 6
-
-
-    return ball_x,ball_y
+ball_radius = 20
 
 
 def draw_trajectory(mouse_start_x, mouse_start_y, mouse_end_x, mouse_end_y):
@@ -71,55 +54,87 @@ def draw_trajectory(mouse_start_x, mouse_start_y, mouse_end_x, mouse_end_y):
 
     # Draw the trajectory line
     pygame.draw.line(WIN, BLACK, (mouse_start_x, mouse_start_y), (line_end_x, line_end_y), 5)
-    #print(mouse_start_x, mouse_start_y, line_end_x, line_end_y)
 
 
-def shoot_ball(ball_x,ball_y):
+
+def shoot_ball(ball_x, ball_y,horizontal_velocity):
+    ball_x += horizontal_velocity
+    if horizontal_velocity > 0:
+        ball_x += horizontal_velocity
+        if ball_x < ball_radius:
+            ball_x = ball_radius
+        elif ball_x > WIDTH - ball_radius:
+            ball_x = WIDTH - ball_radius
+        if ball_y < ball_radius:
+            ball_y = ball_radius
+        elif ball_y > HEIGHT - ball_radius:
+            ball_y = HEIGHT - ball_radius
 
 
-def main():
-    clock = pygame.time.Clock()
-    ball_x,ball_y = (WIDTH // 10, HEIGHT// 2)
-    is_aiming = False
-    start_x,start_y = 0, 0
-    run = True
-    while run:
-        clock.tick(FPS)
-        WIN.fill(WHITE)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
+        print("horizontal_velocity:", horizontal_velocity)
+        print("Ball position: ", ball_x,ball_y)
+        horizontal_velocity -= 1
+        # Make ball fall down
+        if ball_y < HEIGHT - ball_radius:
+            ball_y += 1
+        pygame.display.update()
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                start_x, start_y = pygame.mouse.get_pos()
-                if event.button == 1:
-                    if ball_x + 5 < start_x < ball_x+15:
-                        if ball_y + 5 < start_y < ball_y + 15:
-                            is_aiming = True
-                        else:
-                            print("Click and drag on the ball to aim")
+    return ball_x,ball_y,horizontal_velocity
+
+
+clock = pygame.time.Clock()
+ball_x,ball_y = (WIDTH // 10, HEIGHT -20)
+ball_centre = (WIDTH // 10,HEIGHT-10)
+is_aiming = False
+shooting = False
+horizontal_velocity = 20
+start_x,start_y = 0, 0
+end_x,end_y = 0,0
+run = True
+
+
+while run:
+    clock.tick(FPS)
+    current_fps = clock.get_fps()
+    #print("FPS:", current_fps)
+    WIN.fill(WHITE)
+    BALL = pygame.draw.circle(WIN,BLACK,(ball_x+10,ball_y+10),10,10)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            start_x, start_y = pygame.mouse.get_pos()
+            if event.button == 1:
+                if ball_x + 5 < start_x < ball_x+15:
+                    if ball_y + 5 < start_y < ball_y + 15:
+                        is_aiming = True
                     else:
                         print("Click and drag on the ball to aim")
                 else:
-                    print("Use left mouse button to aim")
+                    print("Click and drag on the ball to aim")
+            else:
+                print("Use left mouse button to aim")
 
-            if event.type == pygame.MOUSEMOTION and is_aiming:
-                end_x,end_y = pygame.mouse.get_pos()
-                draw_trajectory(start_x,start_y,end_x,end_y)
+        if event.type == pygame.MOUSEMOTION and is_aiming:
+            end_x,end_y = pygame.mouse.get_pos()
+            draw_trajectory(start_x,start_y,end_x,end_y)
 
-            if event.type == pygame.MOUSEBUTTONUP:
-                is_aiming = False
-                print("stopped aiming")
+        if event.type == pygame.MOUSEBUTTONUP and is_aiming:
+            is_aiming = False
+            print("shooting")
+            shooting = True
 
-
-        BALL = pygame.transform.scale(pygame.image.load(os.path.join('new-moon.png')),(20,20))
-        ball_x,ball_y = get_ball_physics(ball_x,ball_y,20)
-        WIN.blit(BALL, (ball_x,ball_y))
-
+    if shooting:
+        ball_x, ball_y, horizontal_velocity = shoot_ball(ball_x, ball_y, horizontal_velocity)
         pygame.display.update()
+        print(horizontal_velocity)
+
+    if horizontal_velocity <= 0:
+        shooting = False
 
 
 
-    pygame.quit()
+    pygame.display.update()
+pygame.quit()
 
-main()
