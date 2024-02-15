@@ -1,7 +1,6 @@
 import pygame
 import math
 
-
 WIDTH, HEIGHT = 1280, 720
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Minigolf")
@@ -10,7 +9,8 @@ G = 0.1
 BOUNCE_FACTOR = 0.3
 AERIAL_FRICTION_COEFFICIENT = 0.015
 GROUNDED_FRICTION_COEFFICIENT = 0.05
-
+MAX_PULL_DISTANCE = 10
+FORCE_SCALING_FACTOR = 10
 FPS = 60
 
 RED = (255, 0, 0)
@@ -27,7 +27,6 @@ AQUA = (100, 200, 200)
 BLACK = (0, 0, 0)
 GREY = (200, 200, 200)
 WHITE = (255, 255, 255)
-
 
 
 def draw_trajectory(mouse_start_x, mouse_start_y, mouse_end_x, mouse_end_y):
@@ -58,15 +57,16 @@ def draw_trajectory(mouse_start_x, mouse_start_y, mouse_end_x, mouse_end_y):
     pygame.draw.line(WIN, BLACK, (mouse_start_x, mouse_start_y), (line_end_x, line_end_y), 5)
 
 
+
 class Ball:
-    def __init__(self,x,y):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
         self.ball_radius = 8
         self.mass = self.ball_radius
         self.vx = 0
         self.vy = 0
-        self.force_applied=False
+        self.force_applied = False
         self.bounce_count = 0
 
     def apply_force(self, force_x, force_y):
@@ -79,42 +79,41 @@ class Ball:
             self.force_applied = True
         else:
             # Friction force (opposes motion)
-            if self.y >= HEIGHT - self.ball_radius-2: # Allow for small invisiible discrepancies
+            if self.y >= HEIGHT - self.ball_radius - 2:  # Allow for small invisiible discrepancies
                 ax_friction = -GROUNDED_FRICTION_COEFFICIENT * self.vx
-                print("Ground Friction: ", ax_friction)
+                # print("Ground Friction: ", ax_friction)
             else:
                 ax_friction = -AERIAL_FRICTION_COEFFICIENT * self.vx
-                print("Aerial Friction: ", ax_friction)
+                # print("Aerial Friction: ", ax_friction)
 
             # Update velocity using Euler integration
             ax = ax_friction
             ay = round(force_y / self.mass, 2)
 
-
         # Update velocity
         self.vx += ax
         self.vy += ay
-        print("Acceleration: ",round(ax,2), "Horizontal Velocity: ", round(self.vx, 2))
+        # print("Acceleration: ",round(ax,2), "Horizontal Velocity: ", round(self.vx, 2))
 
         # Update position
         self.x += round(self.vx, 2)
-        self.y += round(self.vy,2)
+        self.y += round(self.vy, 2)
         # print("Positiion: ", round(self.x,2), round(self.y,2), "Velocity: " ,round(self.vx,2), round(self.vy,2))
 
     def draw_ball(self):
-        pygame.draw.circle(WIN,BLACK,(self.x,self.y),self.ball_radius,10)
+        pygame.draw.circle(WIN, BLACK, (self.x, self.y), self.ball_radius, 10)
 
     def get_position(self):
         return self.x, self.y
 
     def get_speed(self):
-        return self.vx,self.vy
+        return self.vx, self.vy
 
     def check_bounce(self):
         if self.y >= HEIGHT - self.ball_radius:
             self.y = HEIGHT - self.ball_radius
             self.vy = -self.vy * BOUNCE_FACTOR
-            self.bounce_count+=1
+            self.bounce_count += 1
 
         #   Right Wall Bounce
         if self.x >= WIDTH - self.ball_radius:
@@ -134,10 +133,8 @@ class Ball:
         #     self.vy = 0
 
 
-
-
 clock = pygame.time.Clock()
-ball = Ball(100,100)
+ball = Ball(100, 100)
 is_aiming = False
 shooting = False
 horizontal_velocity = 20
@@ -151,9 +148,12 @@ while run:
     clock.tick(FPS)
     current_fps = clock.get_fps()
     # print("FPS:", current_fps)
-    WIN.fill(WHITE)
+    WIN.fill(GREY)
     ball.draw_ball()
 
+
+    # if animation_active:
+    #     continue
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             run = False
@@ -162,12 +162,14 @@ while run:
                 print("Space key pressed!")
                 animation_active = True
 
-
         if event.type == pygame.MOUSEBUTTONDOWN:
             start_x, start_y = pygame.mouse.get_pos()
+            print(start_x, ball.get_position()[0])
             if event.button == 1:
-                if ball.get_position()[0] + 5 < start_x < ball.get_position()[0] + 15:
-                    if ball.get_position()[1] + 5 < start_y < ball.get_position()[1] + 15:
+                if ball.get_position()[0] - 10 < start_x < ball.get_position()[0] + 10:
+                    print("1")
+                    if ball.get_position()[1] - 10 < start_y < ball.get_position()[1] + 10:
+                        print("2")
                         is_aiming = True
                     else:
                         print("Click and drag on the ball to aim")
@@ -180,14 +182,19 @@ while run:
             end_x, end_y = pygame.mouse.get_pos()
             draw_trajectory(start_x, start_y, end_x, end_y)
 
-    #     if event.type == pygame.MOUSEBUTTONUP and is_aiming:
-    #         is_aiming = False
-    #         print("shooting: \n")
-    #         shooting = True
-    #
+        if event.type == pygame.MOUSEBUTTONUP and is_aiming:
+            is_aiming = False
+            print("shooting: \n")
+            animation_active = True
+
     if animation_active:
         ball_x, ball_y = ball.get_position()
-        ball.apply_force(2000, ball.mass * G)
+        print(ball.mass*G)
+        # ball.apply_force(80000, ball.mass * G)
         ball.check_bounce()
+
+
+
+
     pygame.display.update()
 pygame.quit()
